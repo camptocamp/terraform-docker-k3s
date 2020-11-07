@@ -26,3 +26,9 @@ variable "wait_for_cluster_interpreter" {
   type        = list(string)
   default     = ["/bin/sh", "-c"]
 }
+
+variable "csi_support" {
+  description = "Container Storage Interface requires /var/lib/kubelet to be mounted with rshared propagation, that can cause some issues."
+  type        = bool
+  default     = false
+}

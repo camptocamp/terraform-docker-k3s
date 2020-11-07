@@ -99,7 +99,8 @@ resource "docker_image" "k3s" {
 }
 
 resource "docker_volume" "k3s_server_kubelet" {
-  name = "k3s-server-kubelet-${var.cluster_name}"
+  count = var.csi_support ? 1 : 0
+  name  = "k3s-server-kubelet-${var.cluster_name}"
 }
 
 resource "docker_container" "k3s_server" {
@@ -153,13 +154,17 @@ resource "docker_container" "k3s_server" {
     type   = "volume"
   }
 
-  mounts {
-    target = "/var/lib/kubelet"
-    source = docker_volume.k3s_server_kubelet.mountpoint
-    type   = "bind"
+  dynamic mounts {
+    for_each = var.csi_support ? [1] : []
 
-    bind_options {
-      propagation = "rshared"
+    content {
+      target = "/var/lib/kubelet"
+      source = docker_volume.k3s_server_kubelet[0].mountpoint
+      type   = "bind"
+
+      bind_options {
+        propagation = "rshared"
+      }
     }
   }
 
@@ -170,6 +175,8 @@ resource "docker_container" "k3s_server" {
 }
 
 resource "null_resource" "provisioner" {
+  count = var.csi_support ? 1 : 0
+
   depends_on = [
     docker_container.k3s_server,
     docker_container.k3s_agent,
@@ -186,7 +193,7 @@ resource "null_resource" "provisioner" {
 }
 
 resource "docker_volume" "k3s_agent_kubelet" {
-  count = var.node_count
+  count = var.csi_support ? var.node_count : 0
 
   name = "k3s-agent-kubelet-${var.cluster_name}-${count.index}"
 }
@@ -224,13 +231,17 @@ resource "docker_container" "k3s_agent" {
     type   = "bind"
   }
 
-  mounts {
-    target = "/var/lib/kubelet"
-    source = docker_volume.k3s_agent_kubelet[0].mountpoint
-    type   = "bind"
+  dynamic mounts {
+    for_each = var.csi_support ? [1] : []
 
-    bind_options {
-      propagation = "rshared"
+    content {
+      target = "/var/lib/kubelet"
+      source = docker_volume.k3s_agent_kubelet[count.index].mountpoint
+      type   = "bind"
+
+      bind_options {
+        propagation = "rshared"
+      }
     }
   }
 }

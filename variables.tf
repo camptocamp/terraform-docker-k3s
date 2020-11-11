@@ -15,6 +15,12 @@ variable "node_count" {
   default     = 2
 }
 
+variable "network_name" {
+  description = "Docker network to use. Creates a new one if null."
+  type        = string
+  default     = null
+}
+
 variable "wait_for_cluster_cmd" {
   description = "Custom local-exec command to execute for determining if the eks cluster is healthy. Cluster endpoint will be available as an environment variable called ENDPOINT"
   type        = string

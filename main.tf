@@ -4,6 +4,8 @@ resource "docker_volume" "k3s_server" {
 }
 
 resource "docker_network" "k3s" {
+  count = var.network_name == null ? 1 : 0
+
   name = "k3s-${var.cluster_name}"
 }
 
@@ -17,7 +19,7 @@ resource "docker_container" "registry_dockerio" {
   name  = "registry-dockerio-${var.cluster_name}"
 
   networks_advanced {
-    name    = docker_network.k3s.name
+    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
     aliases = ["registry-dockerio"]
   }
 
@@ -37,7 +39,7 @@ resource "docker_container" "registry_quayio" {
   name  = "registry-quayio-${var.cluster_name}"
 
   networks_advanced {
-    name    = docker_network.k3s.name
+    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
     aliases = ["registry-quayio"]
   }
 
@@ -58,7 +60,7 @@ resource "docker_container" "registry_gcrio" {
   name  = "registry-gcrio-${var.cluster_name}"
 
   networks_advanced {
-    name    = docker_network.k3s.name
+    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
     aliases = ["registry-gcrio"]
   }
 
@@ -78,7 +80,7 @@ resource "docker_container" "registry_usgcrio" {
   name  = "registry-usgcrio-${var.cluster_name}"
 
   networks_advanced {
-    name    = docker_network.k3s.name
+    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
     aliases = ["registry-usgcrio"]
   }
 
@@ -116,7 +118,7 @@ resource "docker_container" "k3s_server" {
   privileged = true
 
   networks_advanced {
-    name    = docker_network.k3s.name
+    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
     aliases = ["server"]
   }
 
@@ -207,7 +209,7 @@ resource "docker_container" "k3s_agent" {
   privileged = true
 
   networks_advanced {
-    name = docker_network.k3s.name
+    name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
   }
 
   env = [

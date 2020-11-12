@@ -266,9 +266,19 @@ resource "null_resource" "wait_for_cluster" {
   }
 }
 
-resource "null_resource" "fix_kubeconfig" {
+resource "null_resource" "wait_for_kubeconfig" {
   depends_on = [
     null_resource.wait_for_cluster,
+  ]
+
+  provisioner "local-exec" {
+    command = "for i in `seq 1 60`; do test -f ${path.cwd}/kubeconfig.yaml && exit 0 || true; sleep 5; done; echo TIMEOUT && exit 1"
+  }
+}
+
+resource "null_resource" "fix_kubeconfig" {
+  depends_on = [
+    null_resource.wait_for_kubeconfig,
   ]
 
   provisioner "local-exec" {

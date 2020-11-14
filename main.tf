@@ -112,7 +112,6 @@ resource "docker_container" "k3s_server" {
   command = [
     "server",
     "--disable", "traefik",
-    "--disable", "local-storage",
   ]
 
   privileged = true

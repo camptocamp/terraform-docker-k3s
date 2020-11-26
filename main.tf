@@ -109,10 +109,7 @@ resource "docker_container" "k3s_server" {
   image = docker_image.k3s.latest
   name  = "k3s-server-${var.cluster_name}"
 
-  command = [
-    "server",
-    "--disable", "traefik",
-  ]
+  command = concat(["server"], var.server_config)
 
   privileged = true
 

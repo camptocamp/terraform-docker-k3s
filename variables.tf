@@ -9,6 +9,12 @@ variable "k3s_version" {
   default     = "v1.19.2-k3s1"
 }
 
+variable "server_config" {
+  description = "The command line flags passed to the K3s server"
+  type        = list(string)
+  default     = []
+}
+
 variable "node_count" {
   description = "Number of nodes to deploy"
   type        = number

@@ -44,3 +44,13 @@ variable "csi_support" {
   type        = bool
   default     = false
 }
+
+variable "registries" {
+  description = "The list of registries mirrors to pass to registries.yaml file."
+  type = object({
+    mirrors = map(object({
+      endpoint = list(string)
+    }))
+  })
+  default = null
+}

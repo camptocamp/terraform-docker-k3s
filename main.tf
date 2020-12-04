@@ -9,92 +9,6 @@ resource "docker_network" "k3s" {
   name = "k3s-${var.cluster_name}"
 }
 
-resource "docker_image" "registry" {
-  name         = "registry:2"
-  keep_locally = true
-}
-
-resource "docker_container" "registry_dockerio" {
-  image = docker_image.registry.latest
-  name  = "registry-dockerio-${var.cluster_name}"
-
-  networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-dockerio"]
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io",
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_quayio" {
-  image = docker_image.registry.latest
-  name  = "registry-quayio-${var.cluster_name}"
-
-  networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-quayio"]
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://quay.io/repository",
-    "REGISTRY_COMPATIBILITY_SCHEMA1_ENABLED=true"
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_gcrio" {
-  image = docker_image.registry.latest
-  name  = "registry-gcrio-${var.cluster_name}"
-
-  networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-gcrio"]
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://gcr.io",
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_usgcrio" {
-  image = docker_image.registry.latest
-  name  = "registry-usgcrio-${var.cluster_name}"
-
-  networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-usgcrio"]
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://us.gcr.io",
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
 resource "docker_image" "k3s" {
   name         = "rancher/k3s:${var.k3s_version}"
   keep_locally = true
@@ -105,6 +19,12 @@ resource "docker_volume" "k3s_server_kubelet" {
   name  = "k3s-server-kubelet-${var.cluster_name}"
 }
 
+resource "local_file" "registries_yaml" {
+  count    = var.registries != null ? 1 : 0
+  content  = yamlencode(var.registries)
+  filename = "${path.module}/registries.yaml"
+}
+
 resource "docker_container" "k3s_server" {
   image = docker_image.k3s.latest
   name  = "k3s-server-${var.cluster_name}"
@@ -112,11 +32,6 @@ resource "docker_container" "k3s_server" {
   command = concat(["server"], var.server_config)
 
   privileged = true
-
-  networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["server"]
-  }
 
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
@@ -141,15 +56,19 @@ resource "docker_container" "k3s_server" {
   }
 
   mounts {
-    target = "/etc/rancher/k3s/registries.yaml"
-    source = "${abspath(path.module)}/registries.yaml"
-    type   = "bind"
-  }
-
-  mounts {
     target = "/var/lib/rancher/k3s"
     source = docker_volume.k3s_server.name
     type   = "volume"
+  }
+
+  dynamic mounts {
+    for_each = var.registries != null ? [1] : []
+
+    content {
+      target = "/etc/rancher/k3s/registries.yaml"
+      source = abspath(local_file.registries_yaml.0.filename)
+      type   = "bind"
+    }
   }
 
   dynamic mounts {
@@ -204,13 +123,9 @@ resource "docker_container" "k3s_agent" {
 
   privileged = true
 
-  networks_advanced {
-    name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-  }
-
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
-    "K3S_URL=https://server:6443",
+    "K3S_URL=https://${docker_container.k3s_server.ip_address}:6443",
   ]
 
   mounts {
@@ -221,12 +136,6 @@ resource "docker_container" "k3s_agent" {
   mounts {
     target = "/var/run"
     type   = "tmpfs"
-  }
-
-  mounts {
-    target = "/etc/rancher/k3s/registries.yaml"
-    source = "${abspath(path.module)}/registries.yaml"
-    type   = "bind"
   }
 
   dynamic mounts {

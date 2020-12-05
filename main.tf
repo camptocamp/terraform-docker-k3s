@@ -1,3 +1,6 @@
+locals {
+  network_name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
+}
 # Mimics https://github.com/rancher/k3s/blob/master/docker-compose.yml
 resource "docker_volume" "k3s_server" {
   name = "k3s-server-${var.cluster_name}"
@@ -19,8 +22,7 @@ resource "docker_container" "registry_dockerio" {
   name  = "registry-dockerio-${var.cluster_name}"
 
   networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-dockerio"]
+    name = local.network_name
   }
 
   env = [
@@ -39,8 +41,7 @@ resource "docker_container" "registry_quayio" {
   name  = "registry-quayio-${var.cluster_name}"
 
   networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-quayio"]
+    name = local.network_name
   }
 
   env = [
@@ -60,8 +61,7 @@ resource "docker_container" "registry_gcrio" {
   name  = "registry-gcrio-${var.cluster_name}"
 
   networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-gcrio"]
+    name = local.network_name
   }
 
   env = [
@@ -80,8 +80,7 @@ resource "docker_container" "registry_usgcrio" {
   name  = "registry-usgcrio-${var.cluster_name}"
 
   networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["registry-usgcrio"]
+    name = local.network_name
   }
 
   env = [
@@ -93,6 +92,25 @@ resource "docker_container" "registry_usgcrio" {
     source = "registry"
     type   = "volume"
   }
+}
+
+resource "local_file" "registries_yaml" {
+  content  = <<EOF
+  "mirrors":
+    "docker.io":
+      "endpoint":
+      - "http://${docker_container.registry_dockerio.ip_address}:5000"
+    "quay.io":
+      "endpoint":
+      - "http://${docker_container.registry_quayio.ip_address}:5000"
+    "gcr.io":
+      "endpoint":
+      - "http://${docker_container.registry_gcrio.ip_address}:5000"
+    "us.gcr.io":
+      "endpoint":
+      - "http://${docker_container.registry_usgcrio.ip_address}:5000"
+  EOF
+  filename = "${path.module}/registries.yaml"
 }
 
 resource "docker_image" "k3s" {
@@ -114,8 +132,7 @@ resource "docker_container" "k3s_server" {
   privileged = true
 
   networks_advanced {
-    name    = var.network_name == null ? docker_network.k3s.0.name : var.network_name
-    aliases = ["server"]
+    name = local.network_name
   }
 
   env = [
@@ -142,7 +159,7 @@ resource "docker_container" "k3s_server" {
 
   mounts {
     target = "/etc/rancher/k3s/registries.yaml"
-    source = "${abspath(path.module)}/registries.yaml"
+    source = abspath(local_file.registries_yaml.filename)
     type   = "bind"
   }
 
@@ -205,12 +222,12 @@ resource "docker_container" "k3s_agent" {
   privileged = true
 
   networks_advanced {
-    name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
+    name = local.network_name
   }
 
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
-    "K3S_URL=https://server:6443",
+    "K3S_URL=https://${docker_container.k3s_server.ip_address}:6443",
   ]
 
   mounts {
@@ -225,7 +242,7 @@ resource "docker_container" "k3s_agent" {
 
   mounts {
     target = "/etc/rancher/k3s/registries.yaml"
-    source = "${abspath(path.module)}/registries.yaml"
+    source = abspath(local_file.registries_yaml.filename)
     type   = "bind"
   }
 

@@ -169,7 +169,7 @@ resource "docker_container" "k3s_server" {
     type   = "volume"
   }
 
-  dynamic mounts {
+  dynamic "mounts" {
     for_each = var.csi_support ? [1] : []
 
     content {
@@ -246,7 +246,7 @@ resource "docker_container" "k3s_agent" {
     type   = "bind"
   }
 
-  dynamic mounts {
+  dynamic "mounts" {
     for_each = var.csi_support ? [1] : []
 
     content {

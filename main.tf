@@ -17,75 +17,17 @@ resource "docker_image" "registry" {
   keep_locally = true
 }
 
-resource "docker_container" "registry_dockerio" {
+resource "docker_container" "registry_mirror" {
+  for_each = var.registry_mirrors
+
   image = docker_image.registry.latest
-  name  = "registry-dockerio-${var.cluster_name}"
+  name  = format("registry-%s-%s", replace(each.key, ".", "-"), var.cluster_name)
 
   networks_advanced {
     name = local.network_name
   }
 
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io",
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_quayio" {
-  image = docker_image.registry.latest
-  name  = "registry-quayio-${var.cluster_name}"
-
-  networks_advanced {
-    name = local.network_name
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://quay.io/repository",
-    "REGISTRY_COMPATIBILITY_SCHEMA1_ENABLED=true"
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_gcrio" {
-  image = docker_image.registry.latest
-  name  = "registry-gcrio-${var.cluster_name}"
-
-  networks_advanced {
-    name = local.network_name
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://gcr.io",
-  ]
-
-  mounts {
-    target = "/var/lib/registry"
-    source = "registry"
-    type   = "volume"
-  }
-}
-
-resource "docker_container" "registry_usgcrio" {
-  image = docker_image.registry.latest
-  name  = "registry-usgcrio-${var.cluster_name}"
-
-  networks_advanced {
-    name = local.network_name
-  }
-
-  env = [
-    "REGISTRY_PROXY_REMOTEURL=https://us.gcr.io",
-  ]
+  env = each.value
 
   mounts {
     target = "/var/lib/registry"
@@ -96,20 +38,14 @@ resource "docker_container" "registry_usgcrio" {
 
 resource "local_file" "registries_yaml" {
   content  = <<EOF
-  "mirrors":
-    "docker.io":
-      "endpoint":
-      - "http://${docker_container.registry_dockerio.ip_address}:5000"
-    "quay.io":
-      "endpoint":
-      - "http://${docker_container.registry_quayio.ip_address}:5000"
-    "gcr.io":
-      "endpoint":
-      - "http://${docker_container.registry_gcrio.ip_address}:5000"
-    "us.gcr.io":
-      "endpoint":
-      - "http://${docker_container.registry_usgcrio.ip_address}:5000"
-  EOF
+---
+mirrors:
+%{for key, registry_mirror in docker_container.registry_mirror~}
+  ${key}:
+    endpoint:
+      - http://${registry_mirror.ip_address}:5000
+%{endfor~}
+EOF
   filename = "${path.module}/registries.yaml"
 }
 

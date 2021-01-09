@@ -44,3 +44,21 @@ variable "csi_support" {
   type        = bool
   default     = false
 }
+
+variable "registry_mirrors" {
+  default = {
+    "docker.io" = [
+      "REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io",
+    ],
+    "quay.io" = [
+      "REGISTRY_PROXY_REMOTEURL=https://quay.io/repository",
+      "REGISTRY_COMPATIBILITY_SCHEMA1_ENABLED=true",
+    ],
+    "gcr.io" = [
+      "REGISTRY_PROXY_REMOTEURL=https://gcr.io",
+    ],
+    "us.gcr.io" = [
+      "REGISTRY_PROXY_REMOTEURL=https://us.gcr.io",
+    ],
+  }
+}

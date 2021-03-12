@@ -62,3 +62,8 @@ variable "registry_mirrors" {
     ],
   }
 }
+
+variable "restart" {
+  description = "Restart policy for the cluster."
+  default     = "unless-stopped"
+}

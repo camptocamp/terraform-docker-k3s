@@ -23,6 +23,8 @@ resource "docker_container" "registry_mirror" {
   image = docker_image.registry.latest
   name  = format("registry-%s-%s", replace(each.key, ".", "-"), var.cluster_name)
 
+  restart = var.restart
+
   networks_advanced {
     name = local.network_name
   }
@@ -62,6 +64,8 @@ resource "docker_volume" "k3s_server_kubelet" {
 resource "docker_container" "k3s_server" {
   image = docker_image.k3s.latest
   name  = "k3s-server-${var.cluster_name}"
+
+  restart = var.restart
 
   command = concat(["server"], var.server_config)
 
@@ -154,6 +158,8 @@ resource "docker_container" "k3s_agent" {
 
   image = docker_image.k3s.latest
   name  = "k3s-agent-${var.cluster_name}-${count.index}"
+
+  restart = var.restart
 
   privileged = true
 

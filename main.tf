@@ -120,11 +120,6 @@ resource "docker_container" "k3s_server" {
     when    = destroy
     command = "docker exec ${self.name} kubectl drain --delete-emptydir-data --ignore-daemonsets ${self.hostname}"
   }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "docker exec ${self.name} kubectl delete node ${self.hostname}"
-  }
 }
 
 resource "docker_volume" "k3s_agent_kubelet" {
@@ -194,11 +189,6 @@ resource "null_resource" "destroy_k3s_agent" {
   provisioner "local-exec" {
     when    = destroy
     command = "docker exec ${self.triggers.server_container_name} kubectl drain --delete-emptydir-data --ignore-daemonsets ${self.triggers.hostname}"
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "docker exec ${self.triggers.server_container_name} kubectl delete node ${self.triggers.hostname}"
   }
 }
 

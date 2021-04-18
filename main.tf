@@ -77,15 +77,7 @@ resource "docker_container" "k3s_server" {
 
   env = [
     "K3S_TOKEN=${random_password.k3s_token.result}",
-    "K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml",
-    "K3S_KUBECONFIG_MODE=666",
   ]
-
-  mounts {
-    target = "/output"
-    source = abspath(path.cwd)
-    type   = "bind"
-  }
 
   mounts {
     target = "/run"
@@ -126,11 +118,6 @@ resource "docker_container" "k3s_server" {
   provisioner "local-exec" {
     when    = destroy
     command = "docker exec ${self.name} kubectl delete node ${self.hostname}"
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "rm ${path.cwd}/kubeconfig.yaml"
   }
 }
 
@@ -225,34 +212,6 @@ resource "null_resource" "wait_for_cluster" {
       ENDPOINT = format("https://%s:6443", docker_container.k3s_server.ip_address)
     }
   }
-}
-
-resource "null_resource" "wait_for_kubeconfig" {
-  depends_on = [
-    null_resource.wait_for_cluster,
-  ]
-
-  provisioner "local-exec" {
-    command = "for i in `seq 1 60`; do test -f ${path.cwd}/kubeconfig.yaml && exit 0 || true; sleep 5; done; echo TIMEOUT && exit 1"
-  }
-}
-
-resource "null_resource" "fix_kubeconfig" {
-  depends_on = [
-    null_resource.wait_for_kubeconfig,
-  ]
-
-  provisioner "local-exec" {
-    command = "sed -i -e 's/127.0.0.1/${docker_container.k3s_server.ip_address}/' ${path.cwd}/kubeconfig.yaml"
-  }
-}
-
-data "local_file" "kubeconfig" {
-  filename = "${path.cwd}/kubeconfig.yaml"
-
-  depends_on = [
-    null_resource.fix_kubeconfig,
-  ]
 }
 
 data "external" "kubeconfig" {

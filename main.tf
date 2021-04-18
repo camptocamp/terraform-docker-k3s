@@ -125,6 +125,11 @@ resource "docker_container" "k3s_server" {
 
   provisioner "local-exec" {
     when    = destroy
+    command = "docker exec ${self.name} kubectl delete node ${self.hostname}"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
     command = "rm ${path.cwd}/kubeconfig.yaml"
   }
 }
@@ -200,6 +205,25 @@ resource "docker_container" "k3s_agent" {
         propagation = "rshared"
       }
     }
+  }
+}
+
+resource "null_resource" "destroy_k3s_agent" {
+  count = var.node_count
+
+  triggers = {
+    server_container_name = docker_container.k3s_server.name
+    hostname              = docker_container.k3s_agent[count.index].hostname
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "docker exec ${self.triggers.server_container_name} kubectl drain --delete-emptydir-data --ignore-daemonsets ${self.triggers.hostname}"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "docker exec ${self.triggers.server_container_name} kubectl delete node ${self.triggers.hostname}"
   }
 }
 

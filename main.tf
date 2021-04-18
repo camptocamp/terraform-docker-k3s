@@ -272,3 +272,16 @@ data "local_file" "kubeconfig" {
     null_resource.fix_kubeconfig,
   ]
 }
+
+data "external" "kubeconfig" {
+  program = ["sh", "${path.module}/kubeconfig.sh"]
+
+  query = {
+    container_name       = docker_container.k3s_server.name
+    container_ip_address = docker_container.k3s_server.ip_address
+  }
+
+  depends_on = [
+    null_resource.wait_for_cluster,
+  ]
+}

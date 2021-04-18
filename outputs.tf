@@ -7,7 +7,9 @@ output "ingress_ip_address" {
 }
 
 output "kubeconfig" {
-  value = data.local_file.kubeconfig.content
+  description = "kubectl config file contents for this K3s cluster."
+  value       = data.external.kubeconfig.result.kubeconfig
+  sensitive   = true
 }
 
 output "kubeconfig_filename" {

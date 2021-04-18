@@ -11,7 +11,3 @@ output "kubeconfig" {
   value       = data.external.kubeconfig.result.kubeconfig
   sensitive   = true
 }
-
-output "kubeconfig_filename" {
-  value = data.local_file.kubeconfig.filename
-}

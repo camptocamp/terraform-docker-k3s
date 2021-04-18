@@ -1,6 +1,7 @@
 locals {
   network_name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
 }
+
 # Mimics https://github.com/rancher/k3s/blob/master/docker-compose.yml
 resource "docker_volume" "k3s_server" {
   name = "k3s-server-${var.cluster_name}"
@@ -113,6 +114,11 @@ resource "docker_container" "k3s_server" {
         propagation = "rshared"
       }
     }
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "docker exec ${self.name} kubectl drain --delete-emptydir-data --ignore-daemonsets ${self.hostname}"
   }
 
   provisioner "local-exec" {

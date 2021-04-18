@@ -134,24 +134,6 @@ resource "docker_container" "k3s_server" {
   }
 }
 
-resource "null_resource" "provisioner" {
-  count = var.csi_support ? 1 : 0
-
-  depends_on = [
-    docker_container.k3s_server,
-    docker_container.k3s_agent,
-  ]
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl -n argocd delete application --all; kubectl -n cluster-operators delete deployments --all; for kind in daemonsets statefulsets deployments cronjobs jobs horizontalpodautoscaler service; do kubectl delete $kind --all --all-namespaces; done; for i in `seq 1 60`; do test `kubectl get pods --all-namespaces | wc -l` -eq 0 && exit 0 || true; sleep 5; done; echo TIMEOUT && exit 1"
-
-    environment = {
-      KUBECONFIG = "${path.cwd}/kubeconfig.yaml"
-    }
-  }
-}
-
 resource "docker_volume" "k3s_agent_kubelet" {
   count = var.csi_support ? var.node_count : 0
 

@@ -70,7 +70,7 @@ variable "restart" {
 
 variable "server_ports" {
   description = "Port mappings of the server container."
-  default     = null
+  default     = []
 
   type = set(object({
     internal = number

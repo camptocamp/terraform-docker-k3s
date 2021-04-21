@@ -67,3 +67,15 @@ variable "restart" {
   description = "Restart policy for the cluster."
   default     = "unless-stopped"
 }
+
+variable "server_ports" {
+  description = "Port mappings of the server container."
+  default     = null
+
+  type = set(object({
+    internal = number
+    external = optional(number)
+    ip       = optional(string)
+    protocol = optional(string)
+  }))
+}

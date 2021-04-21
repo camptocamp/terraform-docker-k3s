@@ -116,6 +116,17 @@ resource "docker_container" "k3s_server" {
     }
   }
 
+  dynamic "ports" {
+    for_each = var.server_ports
+
+    content {
+      internal = ports.value.internal
+      external = ports.value.external
+      ip       = ports.value.ip
+      protocol = ports.value.protocol
+    }
+  }
+
   provisioner "local-exec" {
     when    = destroy
     command = "docker exec ${self.name} kubectl drain --delete-emptydir-data --ignore-daemonsets ${self.hostname}"

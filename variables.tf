@@ -81,7 +81,7 @@ variable "server_ports" {
 }
 
 variable "base_domain" {
-  description = "The base domain used for Ingresses."
+  description = "The base domain used for API access."
   type        = string
   default     = null
 }

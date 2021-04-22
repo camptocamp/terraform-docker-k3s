@@ -216,7 +216,7 @@ resource "null_resource" "wait_for_cluster" {
     command     = var.wait_for_cluster_cmd
     interpreter = var.wait_for_cluster_interpreter
     environment = {
-      ENDPOINT = format("https://%s:6443", docker_container.k3s_server.ip_address)
+      ENDPOINT = format("https://%s:6443", coalesce(var.base_domain, docker_container.k3s_server.ip_address))
     }
   }
 }
@@ -226,7 +226,7 @@ data "external" "kubeconfig" {
 
   query = {
     container_name       = docker_container.k3s_server.name
-    container_ip_address = docker_container.k3s_server.ip_address
+    container_ip_address = coalesce(var.base_domain, docker_container.k3s_server.ip_address)
   }
 
   depends_on = [

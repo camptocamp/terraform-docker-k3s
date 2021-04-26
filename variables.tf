@@ -80,8 +80,8 @@ variable "server_ports" {
   }))
 }
 
-variable "base_domain" {
-  description = "The base domain used for API access."
+variable "cluster_endpoint" {
+  description = "The api endpoint, when empty it's the container's IP."
   type        = string
   default     = null
 }

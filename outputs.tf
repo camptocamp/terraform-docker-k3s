@@ -1,5 +1,5 @@
 output "cluster_endpoint" {
-  value = format("https://%s:6443", docker_container.k3s_server.ip_address)
+  value = format("https://%s:6443", local.cluster_endpoint)
 }
 
 output "ingress_ip_address" {

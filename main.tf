@@ -1,5 +1,7 @@
 locals {
-  network_name = var.network_name == null ? docker_network.k3s.0.name : var.network_name
+  network_name     = var.network_name == null ? docker_network.k3s.0.name : var.network_name
+  cluster_endpoint = coalesce(var.cluster_endpoint, docker_container.k3s_server.ip_address)
+  server_config    = var.cluster_endpoint == null ? var.server_config : concat(["--tls-san", var.cluster_endpoint],var.server_config)
 }
 
 # Mimics https://github.com/rancher/k3s/blob/master/docker-compose.yml
@@ -68,7 +70,7 @@ resource "docker_container" "k3s_server" {
 
   restart = var.restart
 
-  command = concat(["server"], var.server_config)
+  command = concat(["server"], local.server_config)
 
   privileged = true
 
@@ -216,7 +218,7 @@ resource "null_resource" "wait_for_cluster" {
     command     = var.wait_for_cluster_cmd
     interpreter = var.wait_for_cluster_interpreter
     environment = {
-      ENDPOINT = format("https://%s:6443", docker_container.k3s_server.ip_address)
+      ENDPOINT = format("https://%s:6443", local.cluster_endpoint)
     }
   }
 }
@@ -226,7 +228,7 @@ data "external" "kubeconfig" {
 
   query = {
     container_name       = docker_container.k3s_server.name
-    container_ip_address = docker_container.k3s_server.ip_address
+    container_ip_address = local.cluster_endpoint
   }
 
   depends_on = [

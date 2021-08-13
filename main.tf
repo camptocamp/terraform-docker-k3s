@@ -131,7 +131,7 @@ resource "docker_container" "k3s_server" {
 
   provisioner "local-exec" {
     when    = destroy
-    command = "docker exec ${self.name} kubectl drain ${self.hostname} --delete-emptydir-data --disable-eviction --ignore-daemonsets"
+    command = "docker exec ${self.name} kubectl drain ${self.hostname} --delete-emptydir-data --disable-eviction --ignore-daemonsets --grace-period=60"
   }
 }
 
@@ -201,7 +201,7 @@ resource "null_resource" "destroy_k3s_agent" {
 
   provisioner "local-exec" {
     when    = destroy
-    command = "docker exec ${self.triggers.server_container_name} kubectl drain ${self.triggers.hostname} --delete-emptydir-data --disable-eviction --ignore-daemonsets"
+    command = "docker exec ${self.triggers.server_container_name} kubectl drain ${self.triggers.hostname} --delete-emptydir-data --disable-eviction --ignore-daemonsets --grace-period=60"
   }
 }
 

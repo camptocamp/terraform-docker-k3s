@@ -1,7 +1,7 @@
 locals {
   network_name     = var.network_name == null ? docker_network.k3s.0.name : var.network_name
   cluster_endpoint = coalesce(var.cluster_endpoint, docker_container.k3s_server.ip_address)
-  server_config    = var.cluster_endpoint == null ? var.server_config : concat(["--tls-san", var.cluster_endpoint],var.server_config)
+  server_config    = var.cluster_endpoint == null ? var.server_config : concat(["--tls-san", var.cluster_endpoint], var.server_config)
 }
 
 # Mimics https://github.com/rancher/k3s/blob/master/docker-compose.yml

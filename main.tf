@@ -142,74 +142,23 @@ resource "null_resource" "destroy_k3s_server" {
   }
 }
 
-resource "docker_volume" "k3s_agent_kubelet" {
-  count = var.csi_support ? var.node_count : 0
+module "worker_groups" {
+  for_each = var.worker_groups
 
-  name = "k3s-agent-kubelet-${var.cluster_name}-${count.index}"
-}
+  source = "./modules/worker_group"
 
-resource "docker_container" "k3s_agent" {
-  count = var.node_count
+  k3s_version           = var.k3s_version
+  containers_name       = format("%s-%s", var.cluster_name, each.key)
+  restart               = var.restart
+  network_name          = local.network_name
+  k3s_token             = random_password.k3s_token.result
+  k3s_url               = format("https://%s:6443", docker_container.k3s_server.ip_address)
+  registries_yaml       = abspath(local_file.registries_yaml.filename)
+  server_container_name = docker_container.k3s_server.name
 
-  image = docker_image.k3s.latest
-  name  = "k3s-agent-${var.cluster_name}-${count.index}"
-
-  restart = var.restart
-
-  privileged = true
-
-  networks_advanced {
-    name = local.network_name
-  }
-
-  env = [
-    "K3S_TOKEN=${random_password.k3s_token.result}",
-    "K3S_URL=https://${docker_container.k3s_server.ip_address}:6443",
-  ]
-
-  mounts {
-    target = "/run"
-    type   = "tmpfs"
-  }
-
-  mounts {
-    target = "/var/run"
-    type   = "tmpfs"
-  }
-
-  mounts {
-    target = "/etc/rancher/k3s/registries.yaml"
-    source = abspath(local_file.registries_yaml.filename)
-    type   = "bind"
-  }
-
-  dynamic "mounts" {
-    for_each = var.csi_support ? [1] : []
-
-    content {
-      target = "/var/lib/kubelet"
-      source = docker_volume.k3s_agent_kubelet[count.index].mountpoint
-      type   = "bind"
-
-      bind_options {
-        propagation = "rshared"
-      }
-    }
-  }
-}
-
-resource "null_resource" "destroy_k3s_agent" {
-  count = var.node_count
-
-  triggers = {
-    server_container_name = docker_container.k3s_server.name
-    hostname              = docker_container.k3s_agent[count.index].hostname
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "docker exec ${self.triggers.server_container_name} kubectl drain ${self.triggers.hostname} --delete-emptydir-data --disable-eviction --ignore-daemonsets --grace-period=60"
-  }
+  node_count  = each.value.node_count
+  node_labels = each.value.node_labels
+  node_taints = each.value.node_taints
 }
 
 resource "random_password" "k3s_token" {

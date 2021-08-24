@@ -15,10 +15,17 @@ variable "server_config" {
   default     = []
 }
 
-variable "node_count" {
-  description = "Number of nodes to deploy"
-  type        = number
-  default     = 2
+variable "worker_groups" {
+  description = "A list of maps defining worker group configurations"
+  type        = map(any)
+
+  default = {
+    "default" = {
+      node_count  = 2
+      node_labels = []
+      node_taints = []
+    },
+  }
 }
 
 variable "network_name" {

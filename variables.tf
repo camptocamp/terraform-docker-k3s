@@ -16,8 +16,13 @@ variable "server_config" {
 }
 
 variable "worker_groups" {
-  description = "A list of maps defining worker group configurations"
-  type        = map(any)
+  description = "A map defining worker group configurations"
+
+  type = map(object({
+    node_count  = number
+    node_labels = list(string)
+    node_taints = list(string)
+  }))
 
   default = {
     "default" = {
